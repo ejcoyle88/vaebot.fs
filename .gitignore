@@ -1,0 +1,5 @@
+paket-files
+bin
+obj
+.vs
+.vscode

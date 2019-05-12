@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "vaebot": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "TwitchBotUsername": "vaeixbot",
+        "TwitchBotHost": "irc.chat.twitch.tv",
+        "TwitchBotPassword": "oauth:xdss8n8vxszjy7yk64err86ov9nabv",
+        "TwitchBotPort": "6667"
+      }
+    }
+  }
+}
