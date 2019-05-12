@@ -55,14 +55,38 @@ let pingHander cmdState line =
 let isaacyWHandler cmdState line =
     match line with
     | Regex selfPrivMsgPattern groups ->
-        if groups.[1] = (CmdPrefix + "wisaccy") then
+        if groups.[1] = (CmdPrefix + "isaacyW") then
             cmdState.send (sprintf "PRIVMSG %s :isaacy1 isaacy2" groups.[0])
             Thread.Sleep 600
             cmdState.send (sprintf "PRIVMSG %s :isaacy3 isaacy4" groups.[0])
     | _ -> ()
     Ok ()
 
-let inputHandlers = [pingHander; isaacyWHandler]
+let handleJoin cmdState line =
+    let cmd = CmdPrefix + "join"
+    match line with
+    | Regex selfPrivMsgPattern groups ->
+        match groups.[1] with
+        | Prefix cmd msg ->
+            let msgParts = msg.Trim().Split(' ')
+            if msgParts.Length >= 1 then
+                cmdState.send (sprintf "JOIN #%s" msgParts.[0])
+        | _ -> ()
+    | _ -> ()
+    Ok()
+
+let handleLeave cmdState line =
+    let cmd = CmdPrefix + "leave"
+    match line with
+    | Regex selfPrivMsgPattern groups ->
+        match groups.[1] with
+        | Prefix cmd _ ->
+            cmdState.send (sprintf "LEAVE #%s" groups.[0])
+        | _ -> ()
+    | _ -> ()
+    Ok()
+
+let inputHandlers = [pingHander; isaacyWHandler; handleJoin; handleLeave]
 
 type InputAgent () =
     static let processMessage cmdState line = 
@@ -77,9 +101,7 @@ type InputAgent () =
     static let CreateAgent cmdState = MailboxProcessor.Start(fun inbox ->
         let rec messageLoop () = async {
             let! msg = inbox.Receive()
-
             let shouldContinue = processMessage cmdState msg
-            Console.WriteLine ("Should Continue? " + shouldContinue.ToString())
             if not shouldContinue then return ()
             else return! messageLoop ()
         }
