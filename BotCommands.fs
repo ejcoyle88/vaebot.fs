@@ -4,6 +4,8 @@ open Utility
 
 open System.Text.RegularExpressions
 
+let [<Literal>] CmdPrefix = "|"
+
 let (|Prefix|_|)(p: string) (s: string) = 
     if s.StartsWith(p) 
         then Some(s.Substring(p.Length))
@@ -26,20 +28,21 @@ let handlePing (state: BotState) (line: string) =
 let handleTest (state: BotState) (line: string) =
     match line with
     | Regex selfPrivMsgPattern groups ->
-        if groups.[1] = "!test" then
+        if groups.[1] = (CmdPrefix + "test") then
             writeMultipleAsync 1000 state [
-                (sprintf "PRIVMSG %s :test" groups.[0]);
-                (sprintf "PRIVMSG %s :test 2" groups.[0])
+                (sprintf "PRIVMSG %s :isaacy1 isaacy2" groups.[0]);
+                (sprintf "PRIVMSG %s :isaacy3 isaacy4" groups.[0])
             ] |> ignore
             Ok ()
         else Ok ()
     | _ -> Ok ()
 
 let handleJoin (state: BotState) (line: string) =
+    let cmd = CmdPrefix + "join"
     match line with
     | Regex selfPrivMsgPattern groups ->
         match groups.[1] with
-        | Prefix "!join" msg ->
+        | Prefix cmd msg ->
             let msgParts = msg.Trim().Split(' ')
             if msgParts.Length >= 1 then
                 write state (sprintf "JOIN #%s" msgParts.[0])
@@ -48,10 +51,11 @@ let handleJoin (state: BotState) (line: string) =
     | _ -> Ok ()
 
 let handleLeave (state: BotState) (line: string) =
+    let cmd = CmdPrefix + "leave"
     match line with
     | Regex selfPrivMsgPattern groups ->
         match groups.[1] with
-        | Prefix "!leave" _ ->
+        | Prefix CmdPrefix _ ->
             write state (sprintf "LEAVE #%s" groups.[0])
             Ok ()
         | _ -> Ok ()
@@ -60,7 +64,7 @@ let handleLeave (state: BotState) (line: string) =
 let handleQuit (state: BotState) (line: string) =
     match line with
     | Regex privMsgPattern groups ->
-        if groups.[2] = "!quit" && groups.[0] = "vaeix" then
+        if groups.[2] = "|quit" && groups.[0] = "vaeix" then
             write state (sprintf "PRIVMSG %s :Bye! BibleThump" groups.[1])
             Error "Shutting down..."
         else Ok ()

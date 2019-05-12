@@ -10,7 +10,7 @@
     <Compile Include="Configuration.fs" />
     <Compile Include="DbConnection.fs" />
     <Compile Include="BotCommands.fs" />
-    <Compile Include="Bot.fs" />
+    <Compile Include="QueuedBot.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

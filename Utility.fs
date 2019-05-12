@@ -58,3 +58,19 @@ let writeMultipleAsync (delay: int) (state: BotState) (msgs: string list) =
             do! writeAsync state msg
             Thread.Sleep delay
     }
+
+let apply (fList: ('a->'b) list) (x: 'a) = [ for f in fList do yield f x ]
+
+let rec railApply (l: ('a -> Result<'b,string>) list) (i: 'a) =
+    match l with
+    | [] -> Ok Unchecked.defaultof<'b>
+    | [x] -> (x i)
+    | x::xs ->
+        match x i with
+        | Error s -> Error s
+        | Ok _ -> railApply xs i
+
+let mapToState (res: Result<(BotConfiguration * IrcConnection), string>) =
+    match res with
+    | Error x -> Error x
+    | Ok x -> Ok({ config = (fst x); connection = (snd x) })
