@@ -2,6 +2,7 @@
 
 open Utility
 open Configuration
+open DBConnection
 
 open System
 open System.IO
@@ -44,8 +45,8 @@ let (|Regex|_|) pattern input =
             then Some(List.tail [ for g in m.Groups -> g.Value ])
             else None
 
-let selfPrivMsgPattern = ":vaeix!vaeix@vaeix.tmi.twitch.tv PRIVMSG (#.+) :(.+)"
-let privMsgPattern = ":.+!.+@(.+).tmi.twitch.tv PRIVMSG (#.+) :(.+)"
+let [<Literal>] selfPrivMsgPattern = ":vaeix!vaeix@vaeix.tmi.twitch.tv PRIVMSG (#.+) :(.+)"
+let [<Literal>] privMsgPattern = ":.+!.+@(.+).tmi.twitch.tv PRIVMSG (#.+) :(.+)"
 
 let pingHander cmdState line =
     if line = "PING :tmi.twitch.tv" then
@@ -57,7 +58,7 @@ let isaacyWHandler cmdState line =
     | Regex selfPrivMsgPattern groups ->
         if groups.[1] = (CmdPrefix + "isaacyW") then
             cmdState.send (sprintf "PRIVMSG %s :isaacy1 isaacy2" groups.[0])
-            Thread.Sleep 600
+            Thread.Sleep 600 // Can't send multiple messages quickly :(
             cmdState.send (sprintf "PRIVMSG %s :isaacy3 isaacy4" groups.[0])
     | _ -> ()
     Ok ()
@@ -86,7 +87,23 @@ let handleLeave cmdState line =
     | _ -> ()
     Ok()
 
-let inputHandlers = [pingHander; isaacyWHandler; handleJoin; handleLeave]
+let messageLogger _ line =
+    match line with
+    | Regex privMsgPattern groups ->
+        try
+            Messages.``Create(channel, created, from, message)``(
+                groups.[1],
+                DateTime.UtcNow.ToString("dd-MM-yyyy HH:mm:ss"),
+                groups.[0],
+                groups.[2]
+            ) |> ignore
+            DbContext.SubmitUpdates()
+            Ok()
+        with
+        | :? System.Exception as e -> Error(e.Message)
+    | _ -> Ok()
+
+let inputHandlers = [messageLogger; pingHander; isaacyWHandler; handleJoin; handleLeave]
 
 type InputAgent () =
     static let processMessage cmdState line = 
@@ -103,7 +120,7 @@ type InputAgent () =
             let! msg = inbox.Receive()
             let shouldContinue = processMessage cmdState msg
             if not shouldContinue then return ()
-            else return! messageLoop ()
+            return! messageLoop ()
         }
 
         messageLoop ()
@@ -115,7 +132,7 @@ type InputAgent () =
 
 
 type Bot (state: BotState) =
-    member this.Run =
+    member __.Run =
         let writer = OutputAgent.CreateWriter state.connection.Writer
         let cmdState = {botState = state; send = writer}
         let reader = InputAgent.CreateReader cmdState

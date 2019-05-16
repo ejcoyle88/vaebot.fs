@@ -15,3 +15,4 @@ type sql =  SqlDataProvider<Common.DatabaseProviderTypes.SQLITE,
                             CaseSensitivityChange = Common.CaseSensitivityChange.TOLOWER>
 
 let DbContext = sql.GetDataContext()
+let Messages = DbContext.Main.messages
